@@ -55,3 +55,46 @@ class InheritedArticleA(AbstractArticle):
 
 class InheritedArticleB(AbstractArticle):
     pass
+
+
+class AuthorManagerMixin:
+    def favourited(self):
+        return self.filter(follow__favourite=True)
+
+    def add(self, *objs, favourite=False):
+        follows = []
+        for obj in objs:
+            follows.append(Follow(author=self.instance, reader=obj, favourite=favourite))
+        Follow.objects.bulk_create(follows)
+
+
+class ReaderManagerMixin:
+    def favourites(self):
+        return self.filter(follow__favourite=True)
+
+    def add(self, *objs, favourite=False):
+        follows = []
+        for obj in objs:
+            follows.append(Follow(author=obj, reader=self.instance, favourite=favourite))
+        Follow.objects.bulk_create(follows)
+
+
+class Reader(models.Model):
+    name = models.CharField(max_length=100)
+
+
+class Author(models.Model):
+    name = models.CharField(max_length=100)
+    followers = models.ManyToManyField(
+        Reader,
+        through='Follow',
+        related_name='following',
+        manager_mixin=AuthorManagerMixin,
+        related_manager_mixin=ReaderManagerMixin,
+    )
+
+
+class Follow(models.Model):
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    reader = models.ForeignKey(Reader, on_delete=models.CASCADE)
+    favourite = models.BooleanField(default=False)

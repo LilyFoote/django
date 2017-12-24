@@ -739,10 +739,11 @@ class ManyToManyDescriptor(ReverseManyToOneDescriptor):
     class built by ``create_forward_many_to_many_manager()`` defined below.
     """
 
-    def __init__(self, rel, reverse=False):
+    def __init__(self, rel, reverse=False, manager_mixin=None):
         super().__init__(rel)
 
         self.reverse = reverse
+        self.manager_mixin = manager_mixin
 
     @property
     def through(self):
@@ -755,11 +756,16 @@ class ManyToManyDescriptor(ReverseManyToOneDescriptor):
     def related_manager_cls(self):
         related_model = self.rel.related_model if self.reverse else self.rel.model
 
-        return create_forward_many_to_many_manager(
+        manager_class = create_forward_many_to_many_manager(
             related_model._default_manager.__class__,
             self.rel,
             reverse=self.reverse,
         )
+        if self.manager_mixin:
+            class Manager(self.manager_mixin, manager_class):
+                pass
+            return Manager
+        return manager_class
 
     def _get_set_deprecation_msg_params(self):
         return (

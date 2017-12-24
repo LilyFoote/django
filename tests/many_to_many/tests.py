@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.test import TestCase
 
-from .models import Article, InheritedArticleA, InheritedArticleB, Publication
+from .models import Article, Author, Follow, InheritedArticleA, InheritedArticleB, Publication, Reader
 
 
 class ManyToManyTests(TestCase):
@@ -554,3 +554,27 @@ class ManyToManyTests(TestCase):
             ]
         )
         self.assertQuerysetEqual(b.publications.all(), ['<Publication: Science Weekly>'])
+
+    def test_custom_manager_add(self):
+        author = Author.objects.create(name='Author')
+        reader = Reader.objects.create(name='Reader')
+
+        author.followers.add(reader, favourite=True)
+
+        follow = Follow.objects.get(author=author, reader=reader)
+        self.assertTrue(follow.favourite)
+
+        self.assertSequenceEqual(author.followers.favourited(), [reader])
+        self.assertSequenceEqual(reader.following.favourites(), [author])
+
+    def test_custom_related_manager_add(self):
+        author = Author.objects.create(name='Author')
+        reader = Reader.objects.create(name='Reader')
+
+        reader.following.add(author, favourite=True)
+
+        follow = Follow.objects.get(author=author, reader=reader)
+        self.assertTrue(follow.favourite)
+
+        self.assertSequenceEqual(author.followers.favourited(), [reader])
+        self.assertSequenceEqual(reader.following.favourites(), [author])
