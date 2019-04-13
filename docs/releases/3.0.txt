@@ -254,6 +254,7 @@ Management Commands
 * The :option:`startapp --template` and :option:`startproject --template`
   options now support templates stored in XZ archives (``.tar.xz``, ``.txz``)
   and LZMA archives (``.tar.lzma``, ``.tlz``).
+* Added migration operation :class:`~django.db.migrations.operations.AlterModelBases`.
 
 Models
 ~~~~~~
