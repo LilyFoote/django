@@ -22,6 +22,7 @@ from django.db.models.expressions import (
 from django.db.models.functions import (
     Coalesce, Concat, Left, Length, Lower, Substr, Upper,
 )
+from django.db.models.lookups import GreaterThan
 from django.db.models.sql import constants
 from django.db.models.sql.datastructures import Join
 from django.test import SimpleTestCase, TestCase, skipUnlessDBFeature
@@ -1970,3 +1971,45 @@ class ExpressionWrapperTests(SimpleTestCase):
         group_by_cols = expr.get_group_by_cols(alias=None)
         self.assertEqual(group_by_cols, [expr.expression])
         self.assertEqual(group_by_cols[0].output_field, expr.output_field)
+
+
+class ComparisonExpressionTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.n = Number.objects.create(integer=42, float=15.5)
+        cls.n1 = Number.objects.create(integer=-42, float=-15.5)
+
+    def test_annotate_raw_greater_than(self):
+        numbers = Number.objects.annotate(greater=RawSQL('the_integer > 30', ()))
+        self.assertCountEqual(
+            numbers.values_list('integer', 'greater'),
+            ((42, True), (-42, False)),
+        )
+
+    def test_annotate_value_greater_than_value(self):
+        numbers = Number.objects.annotate(greater=GreaterThan(Value(40), Value(30)))
+        self.assertCountEqual(
+            numbers.values_list('integer', 'greater'),
+            ((42, True), (-42, True)),
+        )
+
+    def test_annotate_field_greater_than_value(self):
+        numbers = Number.objects.annotate(greater=GreaterThan(F('integer'), Value(30)))
+        self.assertCountEqual(
+            numbers.values_list('integer', 'greater'),
+            ((42, True), (-42, False)),
+        )
+
+    def test_annotate_field_greater_than_field(self):
+        numbers = Number.objects.annotate(greater=GreaterThan(F('integer'), F('float')))
+        self.assertCountEqual(
+            numbers.values_list('integer', 'greater'),
+            ((42, True), (-42, False)),
+        )
+
+    def test_annotate_greater(self):
+        numbers = Number.objects.annotate(greater=F('integer') > Value(30))
+        self.assertCountEqual(
+            numbers.values_list('integer', 'greater'),
+            ((42, True), (-42, False)),
+        )

@@ -132,7 +132,7 @@ class Lookup:
 
     @cached_property
     def contains_aggregate(self):
-        return self.lhs.contains_aggregate or getattr(self.rhs, 'contains_aggregate', False)
+        return getattr(self.lhs, 'contains_aggregate', False) or getattr(self.rhs, 'contains_aggregate', False)
 
     @cached_property
     def contains_over_clause(self):
@@ -153,6 +153,18 @@ class Lookup:
 
     def __hash__(self):
         return hash(make_hashable(self.identity))
+
+    def resolve_expression(self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False):
+        c = copy(self)
+        c.lhs = self.lhs.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+        c.rhs = self.rhs.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+        return c
+
+    def select_format(self, compiler, sql, params):
+        return sql, params
+
+    def get_db_converters(self, connection):
+        return []
 
 
 class Transform(RegisterLookupMixin, Func):

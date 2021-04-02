@@ -96,6 +96,10 @@ class Combinable:
             "Use .bitand() and .bitor() for bitwise logical operations."
         )
 
+    def __gt__(self, other):
+        from django.db.models.lookups import GreaterThan
+        return GreaterThan(self, other)
+
     def bitand(self, other):
         return self._combine(other, self.BITAND, False)
 
